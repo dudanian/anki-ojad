@@ -43,7 +43,6 @@ class BaseHandler(HTMLHandler):
     def starttag(self, tag, attrs):
         classnames = get_classnames(attrs)
         if "katsuyo_jisho_js" in classnames:
-            self.entries["jisho"] = []
             handler = KatsuyoHandler(self, self.entries["jisho"])
             return handler.starttag(tag, attrs)
 
@@ -126,7 +125,9 @@ def parse_html(string):
         def handle_data(self, data):
             self.handler.handle_data(data)
 
-    entries = {}
+    entries = {
+        "jisho": []
+    }
     OJADParser(entries).feed(string)
     return entries
 
