@@ -42,7 +42,7 @@ def onFocusLost(flag, note, fidx):
 
     try:
         entries = fetch_formatted_entries(src_text)
-        note[dst_field] = ",".join(entries["jisho"])
+        note[dst_field] = "<br />".join(entries["jisho"])
     except Exception as e:
         showInfo("Some error happened")
         return flag
