@@ -8,6 +8,14 @@ def get_classnames(attrs):
     return []
 
 
+def has_id(attrs):
+    for attr in attrs:
+        if attr[0] == "id":
+            return True
+
+    return False
+
+
 class HTMLHandler():
 
     def __init__(self, parent):
@@ -30,40 +38,73 @@ class HTMLHandler():
     def handle_data(self, data):
         pass
 
-    def final_data(self):
-        pass
-
 
 class BaseHandler(HTMLHandler):
 
     def __init__(self, entries):
         HTMLHandler.__init__(self, None)
         self.entries = entries
+        self.form = ["unknown"] # array so we can pass by reference
 
     def starttag(self, tag, attrs):
         classnames = get_classnames(attrs)
+        if tag == "tr" and not has_id(attrs):
+            handler = HeaderHandler(self, self.form)
+            return handler.starttag(tag, attrs)
+
         if "katsuyo_jisho_js" in classnames:
-            handler = KatsuyoHandler(self, self.entries["jisho"])
+            handler = KatsuyoHandler(self, self.form[0], self.entries["jisho"])
             return handler.starttag(tag, attrs)
 
         return self
 
     def endtag(self, tag):
+        # don't explode b/c we don't have a parent
         return self
-        
+
+
+class HeaderHandler(HTMLHandler):
+
+    def __init__(self, parent, form):
+        HTMLHandler.__init__(self, parent)
+        self.form = form
+        self.next_data = False
+
+    def starttag(self, tag, attrs):
+        classnames = get_classnames(attrs)
+        if "midashi" in classnames:
+            self.next_data = True
+
+        self.tag_stack.append(tag)
+        return self
+
+    def handle_data(self, data):
+        if self.next_data:
+            data = data.strip()
+            if not data:
+                return
+
+            self.form[0] = data
+            # need to reset because defaults to low
+            self.next_data = False
+
 
 class KatsuyoHandler(HTMLHandler):
 
-    def __init__(self, parent, words):
+    def __init__(self, parent, form, words):
         HTMLHandler.__init__(self, parent)
+        self.form = form
         self.words = words
 
     def starttag(self, tag, attrs):
         classnames = get_classnames(attrs)
 
         if "accented_word" in classnames:
-            self.words.append([])
-            handler = AccentedWordHandler(self, self.words[-1])
+            self.words.append({
+                "form": self.form,
+                "moras": []
+            })
+            handler = AccentedWordHandler(self, self.words[-1]["moras"])
             return handler.starttag(tag, attrs)
 
         self.tag_stack.append(tag)
@@ -132,6 +173,18 @@ def parse_html(string):
     return entries
 
 
+def possibly_strip(word):
+    form = word["form"]
+    moras = word["moras"]
+
+    if form == "な形容詞" and moras[-1][0] == "な":
+        moras.pop()
+    elif form == "3グループの動詞" and moras[-2][0] == "す" and moras[-1][0] == "る":
+        moras.pop()
+        moras.pop()
+    return moras
+
+
 def compress_moras(word):
     """
     I needed to do this to fix a bug with small characters.
@@ -148,7 +201,7 @@ def compress_moras(word):
             current_accent = next_accent
     else:
         new_word.append((current_mora, current_accent))
-    
+
     return new_word
 
 
@@ -159,11 +212,12 @@ def format_entries(entries):
         new_words = []
 
         for word in words:
-            word = compress_moras(word)
+            moras = possibly_strip(word)
+            moras = compress_moras(moras)
             new_word = ""
             high = ""
 
-            for mora, accent in word:
+            for mora, accent in moras:
                 if accent == "low":
                     new_word += mora
                 elif accent == "plain":

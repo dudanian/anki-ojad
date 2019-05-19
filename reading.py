@@ -23,7 +23,7 @@ def onFocusLost(flag, note, fidx):
     # make these configurable later
     src_field = "Expression"
     dst_field = "Pronunciation"
-    
+
     fields = mw.col.models.fieldNames(note.model())
     triggered_field = fields[fidx]
 
@@ -40,12 +40,9 @@ def onFocusLost(flag, note, fidx):
     if not src_text:
         return flag
 
-    try:
-        entries = fetch_formatted_entries(src_text)
-        note[dst_field] = "<br />".join(entries["jisho"])
-    except Exception as e:
-        showInfo("Some error happened")
-        return flag
+    # this might crash, which isn't great but makes debugging easier
+    entries = fetch_formatted_entries(src_text)
+    note[dst_field] = "<br />".join(entries["jisho"])
 
     # return true if made any change
     return True
