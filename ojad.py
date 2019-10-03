@@ -215,20 +215,21 @@ def format_entries(entries):
             moras = possibly_strip(word)
             moras = compress_moras(moras)
             new_word = ""
-            high = ""
+            last = ""
 
             for mora, accent in moras:
                 if accent == "low":
                     new_word += mora
                 elif accent == "plain":
-                    high += mora
+                    if last == "low":
+                        new_word += "U"
+                    new_word += mora
                 elif accent == "top":
-                    high += mora
-                    new_word = "".join([new_word, '<span class="accent_high accent_edge">', high, '</span>'])
-                    high = ""
-
-            if high:
-                new_word = "".join([new_word, '<span class="accent_high">', high, '</span>'])
+                    if last == "low":
+                        new_word += "U"
+                    new_word += mora
+                    new_word += "D"
+                last = accent
 
             new_words.append(new_word)
         new_entries[conj] = new_words
@@ -281,4 +282,7 @@ if __name__ == '__main__':
         <td class="katsuyo katsuyo_ishi_js"></td>
     </tr>
 </tbody>'''
-    print(parse(test))
+    parsed = parse_html(test)
+    print(parsed)
+    formatted = format_entries(parsed)
+    print(formatted)
