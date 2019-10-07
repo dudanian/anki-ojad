@@ -20,25 +20,30 @@ def onFocusLost(flag, note, fidx):
     if not validNoteType(note.model()):
         return flag
 
+    fields = mw.col.models.fieldNames(note.model())
+    src = fields[fidx]
+    if not regeneratePronunciation(note, src):
+        return flag
+    return True
+
+
+def regeneratePronunciation(note, src):
     # make these configurable later
     src_field = "Expression"
     dst_field = "Pronunciation"
 
-    fields = mw.col.models.fieldNames(note.model())
-    triggered_field = fields[fidx]
-
-    if triggered_field != src_field:
-        return flag
+    if src != src_field:
+        return False
 
     if dst_field not in note:
-        return flag
+        return False
 
     if note[dst_field]:
-        return flag
+        return False
 
     src_text = mw.col.media.strip(note[src_field])
     if not src_text:
-        return flag
+        return False
 
     # this might crash, which isn't great but makes debugging easier
     entries = fetch_formatted_entries(src_text)
