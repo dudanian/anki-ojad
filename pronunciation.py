@@ -1,11 +1,11 @@
-from .lookup import fetch_formatted_entries
+from .scraped_dict import get_pronunciations
 
 from anki.hooks import addHook
 from aqt import mw
 from aqt.utils import showInfo
+import re
 
 config = mw.addonManager.getConfig(__name__)
-
 
 def validNoteType(note_model):
     note_name = note_model['name'].lower()
@@ -14,7 +14,6 @@ def validNoteType(note_model):
             return True
 
     return False
-
 
 def onFocusLost(flag, note, fidx):
     if not validNoteType(note.model()):
@@ -25,7 +24,6 @@ def onFocusLost(flag, note, fidx):
     if not regeneratePronunciation(note, src):
         return flag
     return True
-
 
 def regeneratePronunciation(note, src):
     # make these configurable later
@@ -45,13 +43,12 @@ def regeneratePronunciation(note, src):
     if not src_text:
         return False
 
-    # this might crash, which isn't great but makes debugging easier
-    entries = fetch_formatted_entries(src_text)
-    note[dst_field] = "<br />".join(entries["jisho"])
+    # remove possible parens
+    src_text = re.sub("（.+?）", "", src_text)
+    entries = get_pronunciations(src_text)
+    note[dst_field] = "<br />".join(entries)
 
     # return true if made any change
     return True
 
-
 addHook("editFocusLost", onFocusLost)
-

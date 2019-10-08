@@ -1,6 +1,5 @@
-from . import ojad, lookup
 
 try:
-    from . import pronunciation, bulk_pronunciation
+    from . import pronunciation, bulk_pronunciation, scraped_dict
 except ImportError:
     print("Failed to load pronunciation, probably not running in anki?")
