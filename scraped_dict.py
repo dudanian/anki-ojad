@@ -22,7 +22,8 @@ def generate_dict():
             for line in f:
                 key, value = line.strip().split(",")
                 if key in scraped_dict:
-                    scraped_dict[key].append(value)
+                    if value not in scraped_dict[key]:
+                        scraped_dict[key].append(value)
                 else:
                     scraped_dict[key] = [value]
 
