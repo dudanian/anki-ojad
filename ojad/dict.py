@@ -1,7 +1,6 @@
 import os
 
 DIR_PATH = os.path.dirname(os.path.normpath(__file__))
-DICT_PATH = os.path.join(DIR_PATH, "scraping")
 DICT_NAMES = [
     "group1",
     "group2",
@@ -10,9 +9,9 @@ DICT_NAMES = [
     "nakei",
     "meishi",
 ]
-DICT_FILES = map(lambda x: os.path.join(DICT_PATH, f"{x}.txt"), DICT_NAMES)
+DICT_FILES = map(lambda x: os.path.join(DIR_PATH, f"{x}.txt"), DICT_NAMES)
 
-scraped_dict = {}
+ojad_dict = {}
 
 def generate_dict():
     for dict_file in DICT_FILES:
@@ -21,14 +20,14 @@ def generate_dict():
             f.readline()
             for line in f:
                 key, value = line.strip().split(",")
-                if key in scraped_dict:
-                    if value not in scraped_dict[key]:
-                        scraped_dict[key].append(value)
+                if key in ojad_dict:
+                    if value not in ojad_dict[key]:
+                        ojad_dict[key].append(value)
                 else:
-                    scraped_dict[key] = [value]
+                    ojad_dict[key] = [value]
 
 def get_pronunciations(text):
-    if not scraped_dict:
+    if not ojad_dict:
         generate_dict()
 
-    return scraped_dict.get(text, [])
+    return ojad_dict.get(text, [])

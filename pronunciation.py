@@ -1,9 +1,9 @@
-from .scraped_dict import get_pronunciations
+import re
 
 from anki.hooks import addHook
 from aqt import mw
-from aqt.utils import showInfo
-import re
+
+from .ojad.dict import get_pronunciations
 
 config = mw.addonManager.getConfig(__name__)
 
