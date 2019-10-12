@@ -3,7 +3,8 @@ import re
 from anki.hooks import addHook
 from aqt import mw
 
-from .ojad.dict import get_pronunciations
+from .ojad.dict import get_pronunciations as get_ojad_pronunciations
+from .nhk.dict import get_pronunciations as get_nhk_pronunciations
 
 config = mw.addonManager.getConfig(__name__)
 
@@ -45,7 +46,8 @@ def regeneratePronunciation(note, src):
 
     # remove possible parens
     src_text = re.sub("（.+?）", "", src_text)
-    entries = get_pronunciations(src_text)
+    #entries = get_ojad_pronunciations(src_text)
+    entries = get_nhk_pronunciations(src_text)
     note[dst_field] = "<br />".join(entries)
 
     # return true if made any change
