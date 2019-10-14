@@ -4,47 +4,66 @@ import re
 
 from collections import namedtuple
 
+from aqt.utils import showInfo
+
+# TODO make configurable?
 PITCH_RAISE = "["
 PITCH_LOWER = "]"
 PITCH_STEADY = "-"
 
+NHK_ANKI_CODE = "932119536"
 DIR_PATH = os.path.dirname(os.path.normpath(__file__))
-NHK_PATH = os.path.normpath(os.path.join(DIR_PATH, "..", "..", "932119536"))
+NHK_PATH = os.path.normpath(os.path.join(DIR_PATH, os.pardir, os.pardir, NHK_ANKI_CODE))
 NHK_DICT = os.path.join(NHK_PATH, "ACCDB_unicode.csv")
+
+if not os.path.isfile(NHK_DICT):
+    showInfo(f"Could not find the NHK Accent dictionary in the NHK Pitch Accent Anki add-on " + \
+        "(Anki code {NHK_ANKI_CODE}). Make sure this add-on is installed (and probably disabled).")
 
 nhk_dict = {}
 
+# taken from nhk-pronunciaton
+# annotated myself because I couldn't figure out what
+# each of these fields actually meant
 AccentEntry = namedtuple('AccentEntry', [
-    'NID', # unique key for each entry
-    'ID', # associates different keys for same pronunciation
+    'NID',            # unique key for each entry
+    'ID',             # associates entries with same accent but different midashigo
     'WAVname',
     'K_FLD',
     'ACT',
-    'midashigo', # searchable expressions (not important? not searching by reading)
-    'nhk', # standard expression (for words with common kana readings)
-    'kanjiexpr', # kanji reading (for words with common kana readings)
+    'midashigo',      # searchable expression (useful when searching in actual dictionary)
+    'nhk',            # standard expression (for words with common kana readings)
+    'kanjiexpr',      # kanji expression (forces the kanji reading, often the same as nhk)
     'NHKexpr',
-    'numberchars', # in midashigo1
-    'nopronouncepos',
-    'nasalsoundpos',
-    'majiri', # example sentence
-    'kaisi', # starting pos in majiri
+    'numberchars',    # in midashigo1 (and midashigo)
+    'nopronouncepos', # 1-indexed, marks some chars as not pronounced in everyday speech
+    'nasalsoundpos',  # 1-indexed, marks ga,gi,gu,ge,go with nasal pronunciation
+    'majiri',         # example sentence
+    'kaisi',          # starting pos in majiri
     'KWAV',
-    'midashigo1', # pronunciation display (in katakana)
-    'akusentosuu', # number of accents (relates other entries)
-    'bunshou', # ???
-    'ac', # accent, if shorter than numchars, have to 0 pad front
+    'midashigo1',     # similar to midashigo, but always in katakana, with long syllables (ー),
+                      # and with nasal pronunciation removed
+    'akusentosuu',    # number of entries with the same ID
+    'bunshou',        # ???
+    'ac',             # accent, if shorter than numberchars, have to 0 pad front
+                      # 0 = low, 1 = plain (high), 2 = top (next is low)
 ])
 
 def is_katakana(char):
-    return bool(re.search("[ァ-ヴヷ-ヺ]", char))
+    return char >= "ァ" and char <= "ヺ"
 
 KATAKANA_TO_HIRAGANA = ord("ぁ") - ord("ァ")
-def to_hiragana(value):
-    if value >= "ァ" and value <= "ヴ":
-        return chr(ord(value) + KATAKANA_TO_HIRAGANA)
+def to_hiragana(char):
+    # # ignore ヵ and ヶ which should pretty much always stay in katakana
+    if char >= "ァ" and char <= "ヴ":
+        return chr(ord(char) + KATAKANA_TO_HIRAGANA)
     else:
-        return value
+        return char
+
+# tenten is the next char in the unicode code block
+# not true for う but good enough for what I'm using this for
+def add_tenten(char):
+    return chr(ord(char)+1)
 
 def correct_hiragana_mixed(key, value):
     i = 0
@@ -53,28 +72,53 @@ def correct_hiragana_mixed(key, value):
     corrected = ""
 
     for k, v in zip(key, value):
-        # cases when key actually includes katakana
         if k == v:
+            # key includes katakana so fine?
             corrected += v
-        # else this is most likely hiragana to convert
-        elif is_katakana(v):
-            corrected += to_hiragana(v)
-        # else probably a symbol we don't want to do anything
         else:
-            corrected += v
+            corrected += to_hiragana(v)
 
     return corrected
 
-def correct_hiragana(value):
-    return "".join(map(to_hiragana, value))
-
-def correct_word(key, value):
+# generally mixed words come in two forms:
+#  1. start with non-katakana and end with katakana
+#  2. start with katakana and end with non-katakana
+def correct_hiragana(key, value):
     if is_katakana(key[0]):
         return correct_hiragana_mixed(key, value)
     elif is_katakana(key[-1]):
         return correct_hiragana_mixed(key[::-1], value[::-1])[::-1]
     else:
-        return correct_hiragana(value)
+        return "".join(map(to_hiragana, value))
+
+# pos is a "0" delimeted list of positions
+# but it can also hold numbers greater than 9
+# which is just stupid as to why they would delimit on "0"...
+def correct_pos(pos):
+    pos = pos.split("0")
+
+    last = None
+    for i, p in enumerate(pos):
+        if p:
+            pos[i] = int(p)
+            last = i
+        else:
+            pos[last] *= 10
+
+    return [x for x in pos if x]
+
+def correct_nasal(chars, pos):
+    if not pos:
+        return chars
+
+    pos = correct_pos(pos)
+
+    for p in pos:
+        p -= 1
+        if p < len(chars):
+            chars = chars[:p] + add_tenten(chars[p]) + chars[p+1:]
+
+    return chars
 
 def format_accent(entry):
     chars = entry.midashigo1
@@ -82,7 +126,8 @@ def format_accent(entry):
     accents = entry.ac
     accents = "0"*(len(chars)-len(accents))+accents
     # correct the kana
-    chars = correct_word(entry.nhk, chars)
+    chars = correct_nasal(chars, entry.nasalsoundpos)
+    chars = correct_hiragana(entry.nhk, chars)
 
     word = ""
     last = "0"
@@ -114,4 +159,3 @@ def get_pronunciations(text):
         build_dict()
 
     return nhk_dict.get(text, [])
-
