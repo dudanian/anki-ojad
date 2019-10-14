@@ -46,9 +46,14 @@ def regeneratePronunciation(note, src):
 
     # remove possible parens
     src_text = re.sub("（.+?）", "", src_text)
+    # split by japanese slash
+    words = src_text.split("／")
     #entries = get_ojad_pronunciations(src_text)
-    entries = get_nhk_pronunciations(src_text)
-    note[dst_field] = "<br />".join(entries)
+    entries = []
+    for word in words:
+        entries.extend(get_nhk_pronunciations(word))
+
+    note[dst_field] = "<br>".join(entries)
 
     # return true if made any change
     return True
