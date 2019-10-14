@@ -77,11 +77,12 @@ def correct_word(key, value):
         return correct_hiragana(value)
 
 def format_accent(entry):
+    chars = entry.midashigo1
     # zero pad the accent
     accents = entry.ac
     accents = "0"*(len(chars)-len(accents))+accents
     # correct the kana
-    chars = correct_word(entry.nhk, entry.midashigo1)
+    chars = correct_word(entry.nhk, chars)
 
     word = ""
     last = "0"
