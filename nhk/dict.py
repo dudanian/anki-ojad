@@ -11,14 +11,8 @@ PITCH_RAISE = "["
 PITCH_LOWER = "]"
 PITCH_STEADY = "-"
 
-NHK_ANKI_CODE = "932119536"
 DIR_PATH = os.path.dirname(os.path.normpath(__file__))
-NHK_PATH = os.path.normpath(os.path.join(DIR_PATH, os.pardir, os.pardir, NHK_ANKI_CODE))
-NHK_DICT = os.path.join(NHK_PATH, "ACCDB_unicode.csv")
-
-if not os.path.isfile(NHK_DICT):
-    showInfo(f"Could not find the NHK Accent dictionary in the NHK Pitch Accent Anki add-on " + \
-        "(Anki code {NHK_ANKI_CODE}). Make sure this add-on is installed (and probably disabled).")
+NHK_DICT = os.path.join(DIR_PATH, "accent_db.csv")
 
 nhk_dict = {}
 
